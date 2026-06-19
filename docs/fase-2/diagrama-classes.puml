@@ -1,0 +1,101 @@
+@startuml
+skinparam classAttributeIconSize 0
+
+class User {
+  +id: UUID
+  +name: string
+  +email: string
+  +password_hash: string
+  +role: UserRole
+  +is_active: bool
+}
+
+enum UserRole {
+  CLIENT
+  COMPANY
+  COURIER
+  ADMIN
+}
+
+class Company {
+  +id: UUID
+  +owner_id: UUID
+  +name: string
+  +description: string
+  +latitude: decimal
+  +longitude: decimal
+  +is_open: bool
+}
+
+class Product {
+  +id: UUID
+  +company_id: UUID
+  +name: string
+  +description: string
+  +price: decimal
+  +is_available: bool
+}
+
+class Address {
+  +id: UUID
+  +user_id: UUID
+  +street: string
+  +number: string
+  +city: string
+  +latitude: decimal
+  +longitude: decimal
+}
+
+class Order {
+  +id: UUID
+  +client_id: UUID
+  +company_id: UUID
+  +courier_id: UUID
+  +status: OrderStatus
+  +delivery_fee: decimal
+  +total_amount: decimal
+}
+
+enum OrderStatus {
+  CREATED
+  ACCEPTED_BY_COMPANY
+  WAITING_COURIER
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+}
+
+class OrderItem {
+  +id: UUID
+  +order_id: UUID
+  +product_id: UUID
+  +quantity: int
+  +unit_price: decimal
+}
+
+class Delivery {
+  +id: UUID
+  +order_id: UUID
+  +courier_id: UUID
+  +status: DeliveryStatus
+}
+
+interface DeliveryFeeStrategy {
+  +calculate(distance_km: float): decimal
+}
+
+class BasicDistanceFeeStrategy {
+  +calculate(distance_km: float): decimal
+}
+
+User "1" -- "0..1" Company
+User "1" -- "0..*" Address
+Company "1" -- "0..*" Product
+User "1" -- "0..*" Order : client
+Company "1" -- "0..*" Order
+Order "1" -- "1..*" OrderItem
+Product "1" -- "0..*" OrderItem
+Order "1" -- "0..1" Delivery
+User "1" -- "0..*" Delivery : courier
+DeliveryFeeStrategy <|.. BasicDistanceFeeStrategy
+@enduml
