@@ -1,0 +1,70 @@
+name: Atualizar submodules
+
+on:
+  repository_dispatch:
+    types: [update-submodules]
+
+  workflow_dispatch:
+
+  schedule:
+    - cron: "*/30 * * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-submodules
+  cancel-in-progress: false
+
+jobs:
+  update-submodules:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repositório principal
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PARENT_REPO_TOKEN }}
+          fetch-depth: 0
+          submodules: false
+          persist-credentials: true
+
+      - name: Configurar Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Permitir acesso aos submodules com token
+        run: |
+          git config --global url."https://x-access-token:${{ secrets.PARENT_REPO_TOKEN }}@github.com/".insteadOf "https://github.com/"
+
+      - name: Inicializar submodules
+        run: |
+          git submodule sync --recursive
+          git submodule update --init --recursive backend frontend
+
+      - name: Atualizar backend para origin/main
+        run: |
+          git -C backend fetch origin main
+          BACKEND_SHA=$(git -C backend rev-parse origin/main)
+          git -C backend checkout "$BACKEND_SHA"
+          echo "Backend atualizado para $BACKEND_SHA"
+
+      - name: Atualizar frontend para origin/main
+        run: |
+          git -C frontend fetch origin main
+          FRONTEND_SHA=$(git -C frontend rev-parse origin/main)
+          git -C frontend checkout "$FRONTEND_SHA"
+          echo "Frontend atualizado para $FRONTEND_SHA"
+
+      - name: Commitar atualização dos submodules
+        run: |
+          git add backend frontend
+
+          if git diff --cached --quiet; then
+            echo "Nenhuma atualização de submodule encontrada."
+            exit 0
+          fi
+
+          git commit -m "chore: atualiza submodules"
+          git push
