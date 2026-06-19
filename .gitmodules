@@ -1,0 +1,8 @@
+[submodule "backend"]
+	path = backend
+	url = https://github.com/m-germano/delivery-system-backend.git
+	branch = main
+[submodule "frontend"]
+	path = frontend
+	url = https://github.com/m-germano/delivery-system-frontend.git
+	branch = main
