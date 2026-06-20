@@ -1,0 +1,37 @@
+@startuml
+top to bottom direction
+
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam usecase {
+  BackgroundColor white
+  BorderColor #666666
+}
+skinparam actor {
+  BorderColor #444444
+}
+skinparam ArrowColor #555555
+
+actor "Usuário da plataforma" as UsuarioApp
+actor "Cliente" as Cliente
+actor "Empresa" as Empresa
+actor "Entregador" as Entregador
+actor "Admin" as Admin
+
+Cliente -|> UsuarioApp
+Empresa -|> UsuarioApp
+Entregador -|> UsuarioApp
+
+rectangle "Sistema de Delivery - Acesso e Administração" {
+  usecase "Cadastrar usuário" as UC01
+  usecase "Fazer login" as UC02
+  usecase "Consultar cadastros" as UC20
+}
+
+UsuarioApp --> UC01
+UsuarioApp --> UC02
+
+Admin --> UC02
+Admin --> UC20
+
+@enduml

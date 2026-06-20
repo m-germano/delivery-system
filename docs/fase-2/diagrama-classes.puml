@@ -1,101 +1,269 @@
 @startuml
+title Diagrama de Classes — Sistema de Delivery
+
 skinparam classAttributeIconSize 0
+skinparam linetype ortho
+skinparam packageStyle rectangle
+skinparam shadowing false
 
-class User {
-  +id: UUID
-  +name: string
-  +email: string
-  +password_hash: string
-  +role: UserRole
-  +is_active: bool
+top to bottom direction
+
+skinparam nodesep 60
+skinparam ranksep 60
+
+' =====================================================
+' ACESSO E PERFIS
+' =====================================================
+
+package "Acesso e Perfis" as Access {
+
+  class Role {
+    +id: smallint
+    +name: string
+    +description: string
+  }
+
+  class User {
+    +id: bigint
+    +role_id: smallint
+    +name: string
+    +email: string
+    +password_hash: string
+    +phone: string
+    +is_active: boolean
+    +created_at: datetime
+    +updated_at: datetime
+  }
 }
 
-enum UserRole {
-  CLIENT
-  COMPANY
-  COURIER
-  ADMIN
+' =====================================================
+' EMPRESA, CATÁLOGO E FRETE
+' =====================================================
+
+package "Empresa, Catálogo e Frete" as CompanyCatalog {
+
+  class Company {
+    +id: bigint
+    +owner_user_id: bigint
+    +name: string
+    +description: text
+    +phone: string
+    +document: string
+    +image_url: string
+    +is_active: boolean
+    +created_at: datetime
+    +updated_at: datetime
+  }
+
+  class CompanyAddress {
+    +id: bigint
+    +company_id: bigint
+    +street: string
+    +number: string
+    +neighborhood: string
+    +city: string
+    +state: string
+    +zip_code: string
+    +latitude: decimal
+    +longitude: decimal
+  }
+
+  class ProductCategory {
+    +id: bigint
+    +company_id: bigint
+    +name: string
+    +description: text
+    +display_order: int
+    +is_active: boolean
+  }
+
+  class Product {
+    +id: bigint
+    +company_id: bigint
+    +category_id: bigint
+    +name: string
+    +description: text
+    +price: decimal
+    +image_url: string
+    +is_active: boolean
+  }
+
+  class DeliveryFeeRule {
+    +id: bigint
+    +company_id: bigint
+    +min_distance_km: decimal
+    +max_distance_km: decimal
+    +fee: decimal
+    +is_active: boolean
+  }
 }
 
-class Company {
-  +id: UUID
-  +owner_id: UUID
-  +name: string
-  +description: string
-  +latitude: decimal
-  +longitude: decimal
-  +is_open: bool
+' =====================================================
+' CLIENTE
+' =====================================================
+
+package "Cliente" as Customer {
+
+  class CustomerAddress {
+    +id: bigint
+    +user_id: bigint
+    +label: string
+    +street: string
+    +number: string
+    +neighborhood: string
+    +city: string
+    +state: string
+    +zip_code: string
+    +latitude: decimal
+    +longitude: decimal
+    +is_default: boolean
+  }
 }
 
-class Product {
-  +id: UUID
-  +company_id: UUID
-  +name: string
-  +description: string
-  +price: decimal
-  +is_available: bool
+' =====================================================
+' PEDIDOS
+' =====================================================
+
+package "Pedidos" as Orders {
+
+  class Order {
+    +id: bigint
+    +customer_user_id: bigint
+    +company_id: bigint
+    +customer_address_id: bigint
+    +status: string
+    +subtotal: decimal
+    +delivery_fee: decimal
+    +total: decimal
+    +distance_km: decimal
+    +payment_method: string
+    +notes: text
+  }
+
+  class OrderItem {
+    +id: bigint
+    +order_id: bigint
+    +product_id: bigint
+    +product_name: string
+    +unit_price: decimal
+    +quantity: int
+    +total_price: decimal
+    +notes: text
+  }
+
+  class OrderStatusHistory {
+    +id: bigint
+    +order_id: bigint
+    +old_status: string
+    +new_status: string
+    +changed_by_user_id: bigint
+    +created_at: datetime
+  }
 }
 
-class Address {
-  +id: UUID
-  +user_id: UUID
-  +street: string
-  +number: string
-  +city: string
-  +latitude: decimal
-  +longitude: decimal
+' =====================================================
+' ENTREGA
+' =====================================================
+
+package "Entrega" as DeliveryPackage {
+
+  class Courier {
+    +id: bigint
+    +user_id: bigint
+    +vehicle_type: string
+    +vehicle_plate: string
+    +is_available: boolean
+    +current_latitude: decimal
+    +current_longitude: decimal
+  }
+
+  class Delivery {
+    +id: bigint
+    +order_id: bigint
+    +courier_user_id: bigint
+    +status: string
+    +pickup_latitude: decimal
+    +pickup_longitude: decimal
+    +destination_latitude: decimal
+    +destination_longitude: decimal
+    +distance_km: decimal
+    +delivery_fee: decimal
+    +accepted_at: datetime
+    +picked_up_at: datetime
+    +delivered_at: datetime
+  }
+
+  class DeliveryStatusHistory {
+    +id: bigint
+    +delivery_id: bigint
+    +old_status: string
+    +new_status: string
+    +changed_by_user_id: bigint
+    +created_at: datetime
+  }
 }
 
-class Order {
-  +id: UUID
-  +client_id: UUID
-  +company_id: UUID
-  +courier_id: UUID
-  +status: OrderStatus
-  +delivery_fee: decimal
-  +total_amount: decimal
+' =====================================================
+' STRATEGY DE FRETE
+' =====================================================
+
+package "Regra de Cálculo de Frete" as FeeStrategy {
+
+  interface DeliveryFeeStrategy {
+    +calculate(distance_km): decimal
+  }
+
+  class DistanceRangeFeeStrategy {
+    +calculate(distance_km): decimal
+  }
 }
 
-enum OrderStatus {
-  CREATED
-  ACCEPTED_BY_COMPANY
-  WAITING_COURIER
-  OUT_FOR_DELIVERY
-  DELIVERED
-  CANCELLED
-}
+' =====================================================
+' RELACIONAMENTOS — ACESSO
+' =====================================================
 
-class OrderItem {
-  +id: UUID
-  +order_id: UUID
-  +product_id: UUID
-  +quantity: int
-  +unit_price: decimal
-}
+Role "1" -down-> "0..*" User : possui
 
-class Delivery {
-  +id: UUID
-  +order_id: UUID
-  +courier_id: UUID
-  +status: DeliveryStatus
-}
+User "1" -right-> "0..1" Company : dono
+User "1" -right-> "0..1" Courier : perfil entregador
+User "1" -down-> "0..*" CustomerAddress : endereços
 
-interface DeliveryFeeStrategy {
-  +calculate(distance_km: float): decimal
-}
+' =====================================================
+' RELACIONAMENTOS — EMPRESA E CATÁLOGO
+' =====================================================
 
-class BasicDistanceFeeStrategy {
-  +calculate(distance_km: float): decimal
-}
+Company "1" -down-> "1" CompanyAddress : endereço
+Company "1" -down-> "0..*" ProductCategory : categorias
+Company "1" -down-> "0..*" Product : produtos
+Company "1" -down-> "0..*" DeliveryFeeRule : regras de frete
 
-User "1" -- "0..1" Company
-User "1" -- "0..*" Address
-Company "1" -- "0..*" Product
-User "1" -- "0..*" Order : client
-Company "1" -- "0..*" Order
-Order "1" -- "1..*" OrderItem
-Product "1" -- "0..*" OrderItem
-Order "1" -- "0..1" Delivery
-User "1" -- "0..*" Delivery : courier
-DeliveryFeeStrategy <|.. BasicDistanceFeeStrategy
+ProductCategory "1" -down-> "0..*" Product : classifica
+
+' =====================================================
+' RELACIONAMENTOS — PEDIDOS
+' =====================================================
+
+User "1" -down-> "0..*" Order : realiza
+Company "1" -right-> "0..*" Order : recebe
+CustomerAddress "1" -right-> "0..*" Order : usado em
+
+Order "1" -down-> "1..*" OrderItem : itens
+Product "1" -right-> "0..*" OrderItem : vendido em
+Order "1" -down-> "0..*" OrderStatusHistory : histórico
+
+' =====================================================
+' RELACIONAMENTOS — ENTREGA
+' =====================================================
+
+Order "1" -right-> "0..1" Delivery : gera
+User "1" -right-> "0..*" Delivery : entregador
+Delivery "1" -down-> "0..*" DeliveryStatusHistory : histórico
+
+' =====================================================
+' RELACIONAMENTO — STRATEGY
+' =====================================================
+
+DeliveryFeeStrategy <|.. DistanceRangeFeeStrategy
+DistanceRangeFeeStrategy ..> DeliveryFeeRule : consulta regras
+
 @enduml

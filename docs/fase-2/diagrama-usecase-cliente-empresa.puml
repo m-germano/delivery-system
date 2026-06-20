@@ -1,0 +1,61 @@
+@startuml
+title Casos de Uso — Cliente e Empresa
+
+left to right direction
+
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+
+skinparam usecase {
+  BackgroundColor white
+  BorderColor #666666
+}
+
+skinparam actor {
+  BorderColor #444444
+}
+
+skinparam ArrowColor #555555
+
+actor "Cliente" as Cliente
+actor "Empresa" as Empresa
+
+rectangle "Sistema de Delivery" {
+
+  package "Área do Cliente" as ClienteArea {
+    usecase "Visualizar empresas" as UC06
+    usecase "Visualizar produtos" as UC07
+    usecase "Cadastrar endereço\nde entrega" as UC08
+    usecase "Criar pedido" as UC09
+    usecase "Calcular taxa\nde entrega" as UC10
+    usecase "Acompanhar pedido" as UC11
+  }
+
+  package "Área da Empresa" as EmpresaArea {
+    usecase "Gerenciar empresa" as UC03
+    usecase "Cadastrar endereço\nda empresa" as UC04
+    usecase "Gerenciar produtos" as UC05
+    usecase "Visualizar pedidos\nrecebidos" as UC12
+    usecase "Aceitar ou recusar\npedido" as UC13
+    usecase "Atualizar status\ndo pedido" as UC14
+  }
+}
+
+Cliente --> UC06
+Cliente --> UC07
+Cliente --> UC08
+Cliente --> UC09
+Cliente --> UC11
+
+Empresa --> UC03
+Empresa --> UC04
+Empresa --> UC05
+Empresa --> UC12
+Empresa --> UC13
+Empresa --> UC14
+
+UC09 ..> UC10 : <<include>>
+UC13 ..> UC14 : <<include>>
+
+@enduml

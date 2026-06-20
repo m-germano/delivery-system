@@ -1,0 +1,35 @@
+@startuml
+left to right direction
+
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam usecase {
+  BackgroundColor white
+  BorderColor #666666
+}
+skinparam actor {
+  BorderColor #444444
+}
+skinparam ArrowColor #555555
+
+actor "Entregador" as Entregador
+
+rectangle "Sistema de Delivery - Entrega" {
+  usecase "Ficar disponível" as UC15
+  usecase "Visualizar entregas disponíveis" as UC16
+  usecase "Aceitar entrega" as UC17
+  usecase "Atualizar localização" as UC18
+  usecase "Finalizar entrega" as UC19
+  usecase "Atualizar status do pedido" as UC14
+}
+
+Entregador --> UC15
+Entregador --> UC16
+Entregador --> UC17
+Entregador --> UC18
+Entregador --> UC19
+
+UC17 ..> UC14 : <<include>>
+UC19 ..> UC14 : <<include>>
+
+@enduml
