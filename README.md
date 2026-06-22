@@ -265,6 +265,7 @@ Rodar testes do backend localmente:
 cd backend
 pytest -q
 ```
+Nota: o comando `pytest -q` roda apenas os testes mais simples (realtime e unit). Para executar um teste e2e, por exemplo, ou ter informações mais detalhadas sobre os testes no geral, acesse a pasta do `backend/docs` e leia o `README_TESTES.md` para informações.
 
 ## Observações importantes
 
