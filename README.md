@@ -48,7 +48,7 @@ Para rodar tudo via Docker Compose:
 ## Clonando o projeto
 
 ```bash
-git clone <url-do-repositorio>
+git clone --recurse-submodules <url-do-repositorio>
 cd delivery-system
 ```
 
