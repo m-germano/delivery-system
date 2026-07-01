@@ -18,7 +18,6 @@ skinparam actor {
 }
 
 actor "Entregador" as Entregador
-actor "Cliente" as Cliente
 
 rectangle "DishDash - Entrega" {
   usecase "Ficar disponível" as UC01
@@ -29,7 +28,7 @@ rectangle "DishDash - Entrega" {
   usecase "Compartilhar localização\nem tempo real" as UC06
   usecase "Finalizar entrega\ncom código" as UC07
   usecase "Atualizar status\ndo pedido" as UC08
-  usecase "Consultar código\nde confirmação" as UC09
+  usecase "Validar código\nde confirmação" as UC09
 }
 
 Entregador --> UC01
@@ -40,12 +39,10 @@ Entregador --> UC05
 Entregador --> UC06
 Entregador --> UC07
 
-Cliente --> UC09
-
 UC04 ..> UC08 : <<include>>
 UC05 ..> UC06 : <<include>>
-UC07 ..> UC08 : <<include>>
 UC07 ..> UC09 : <<include>>
+UC07 ..> UC08 : <<include>>
 
 ' Ligações ocultas para melhorar distribuição
 UC01 -[hidden]-> UC03
