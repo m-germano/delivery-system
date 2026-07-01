@@ -120,7 +120,7 @@ Clone com submodules:
 
 ```bash
 git clone --recurse-submodules https://github.com/m-germano/delivery-system
-cd main-repo
+cd delivery-system
 ```
 
 Se você já clonou sem submodules:
@@ -139,7 +139,7 @@ git submodule status
 
 ## Configuração de ambiente
 
-Na raiz do `main-repo`, crie o arquivo `.env` a partir do exemplo:
+Na raiz do `delivery-system`, crie o arquivo `.env` a partir do exemplo:
 
 ```bash
 cp .env.example .env
