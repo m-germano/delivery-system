@@ -173,13 +173,6 @@ Não fazem parte desta entrega:
 
 Separa consultas e comandos de banco das regras de negócio.
 
-### Strategy Pattern
-
-Isola a regra de cálculo de taxa de entrega.
-
-### State Pattern por validação de transições
-
-Controla o avanço de status do pedido e da entrega, impedindo mudanças inválidas.
 
 ---
 
