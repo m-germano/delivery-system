@@ -1,23 +1,34 @@
-# Arquitetura Inicial — Sistema de Delivery
+# Arquitetura — DishDash
 
 ## 1. Visão geral
 
-O sistema será desenvolvido com uma arquitetura cliente-servidor.
+O DishDash usa arquitetura cliente-servidor.
 
-O frontend React será responsável pela interface dos usuários. O backend FastAPI será responsável por expor rotas REST, validar dados, aplicar regras de negócio, autenticar usuários e acessar o banco de dados PostgreSQL.
+O frontend React entrega a interface dos perfis Cliente, Empresa e Entregador. O backend FastAPI expõe rotas REST e WebSocket, valida dados, aplica regras de negócio, autentica usuários e acessa o PostgreSQL. O Redis é usado para eventos em tempo real, sem substituir o banco principal.
 
-Todos os módulos do sistema consomem a mesma API:
+```text
+Frontend React/Vite
+        |
+        | HTTP REST / WebSocket
+        v
+Backend FastAPI
+        |
+        | SQLAlchemy Async
+        v
+PostgreSQL
 
-1. Área do Admin.
-2. Área da Empresa.
-3. Site/área do Cliente.
-4. Portal do Entregador.
+Backend FastAPI
+        |
+        | Pub/Sub
+        v
+Redis
+```
 
 ---
 
 ## 2. Backend
 
-O backend será dividido em camadas:
+Estrutura principal:
 
 ```text
 app/
@@ -33,70 +44,92 @@ app/
 
 ### Controllers
 
-Recebem requisições HTTP, validam autenticação/autorização e chamam os services.
+Recebem as requisições HTTP, aplicam autenticação/autorização e chamam os services.
 
 ### Services
 
-Concentram regras de negócio, como cálculo de taxa, validação de status, criação de pedido e aceite de entrega.
+Concentram as regras de negócio:
+
+- criação e cálculo de pedido;
+- abertura e fechamento da loja;
+- fluxo de status do pedido;
+- fluxo de entrega;
+- código de confirmação;
+- integração Mercado Pago;
+- avaliações;
+- regras de entrega e retirada.
 
 ### Repositories
 
-Isolam o acesso ao PostgreSQL. Mesmo que a implementação use SQL puro, a camada Repository evita que regras de negócio fiquem misturadas com comandos de banco.
+Isolam consultas e comandos de banco. Essa camada aplica o Repository Pattern e evita que regras de negócio fiquem misturadas com acesso direto ao PostgreSQL.
 
-### Models/Entities
+### Models
 
-Representam as entidades do domínio e as tabelas principais do banco. Caso o projeto não utilize ORM, esta camada pode representar estruturas de domínio e documentação das entidades.
+Representam as tabelas principais do domínio.
 
 ### Schemas
 
-Validam entrada e saída da API usando Pydantic.
+Validam entrada e saída da API com Pydantic.
 
 ---
 
 ## 3. Frontend
 
-O frontend será organizado em:
+Estrutura principal:
 
 ```text
 src/
-├── components/
-├── pages/
-├── services/
-├── hooks/
-├── routes/
-├── contexts/
 ├── assets/
-└── styles/
+├── components/
+├── config/
+├── hooks/
+├── pages/
+├── routes/
+├── services/
+├── stores/
+├── styles/
+└── utils/
 ```
 
 ### Pages
 
-Telas principais, como Login, Cadastro, Produtos, Meus Pedidos, Pedidos da Empresa e Entregas Disponíveis.
+Organizam as telas por perfil:
+
+```text
+pages/company
+pages/customer
+pages/courier
+pages/auth
+pages/shared
+```
 
 ### Services
 
-Comunicação com a API.
+Centralizam chamadas HTTP para a API.
 
-### Contexts
+### Stores
 
-Estado global de autenticação e usuário logado.
+Guardam estado global de autenticação, carrinho e UI.
 
 ### Routes
 
-Rotas públicas e privadas por perfil.
+Definem rotas públicas, rotas autenticadas e rotas protegidas por perfil.
 
 ---
 
-## 4. Banco de Dados
+## 4. Banco de dados
 
-O banco utilizado será PostgreSQL.
+O banco principal é PostgreSQL.
 
-A modelagem principal será composta por:
+Tabelas principais:
 
 - roles
 - users
 - companies
 - company_addresses
+- company_order_settings
+- company_payment_accounts
+- company_reviews
 - product_categories
 - products
 - customer_addresses
@@ -107,90 +140,152 @@ A modelagem principal será composta por:
 - couriers
 - deliveries
 - delivery_status_history
+- payments
+- payment_oauth_states
 
-A modelagem foi simplificada em relação a uma solução comercial completa, removendo permissões por ação e vínculo N:N entre usuários e roles. Para o MVP, cada usuário possui apenas uma role principal em `users.role_id`.
+O PostgreSQL é a fonte oficial dos dados. O Redis é usado apenas para eventos em tempo real.
 
 ---
 
 ## 5. Autenticação e autorização
 
-A autenticação será baseada em login com e-mail e senha.
+A autenticação usa e-mail, senha e JWT.
 
-Após login, a API retorna um token JWT. O frontend armazena o token e envia nas próximas requisições no header:
+Após login, o frontend envia o token nas próximas requisições:
 
 ```text
 Authorization: Bearer <token>
 ```
 
-A autorização será baseada em `role_id`:
+Perfis usados no MVP:
 
 | role_id | Perfil |
 |---|---|
-| 1 | Admin |
 | 2 | Empresa |
 | 3 | Entregador |
 | 4 | Cliente |
 
+A role 1 pode existir no banco para compatibilidade, mas não faz parte das telas usadas na apresentação.
+
 ---
 
-## 6. Design Patterns
+## 6. Integrações externas
+
+### Mercado Pago Checkout Pro
+
+A empresa conecta a conta Mercado Pago por OAuth. O backend salva os tokens criptografados. Quando o cliente escolhe pagamento online, o backend cria uma preferência de pagamento e retorna o link do Checkout Pro. Após o pagamento, o Mercado Pago envia webhook para atualizar o pedido.
+
+### ViaCEP
+
+Completa endereço a partir do CEP.
+
+### Nominatim / OpenStreetMap
+
+Converte endereço em latitude e longitude.
+
+### OSRM
+
+Calcula distância real por ruas. Caso falhe, o backend usa fallback aproximado.
+
+### Redis
+
+Publica eventos de pedidos, entregas e rastreamento.
+
+---
+
+## 7. Design Patterns
 
 ### Repository Pattern
 
-Usado para isolar acesso ao banco.
+Aplicado em repositories para separar acesso ao banco das regras de negócio.
 
 ### Strategy Pattern
 
-Usado para cálculo da taxa de entrega.
+Aplicado no cálculo de taxa de entrega. A regra padrão pode ser substituída por regras da empresa.
 
-### State Pattern ou validação de estado
+### State Pattern por validação de transições
 
-Usado para controlar transições de status do pedido e da entrega.
+Aplicado no controle de status do pedido e da entrega. O sistema permite apenas transições válidas.
 
 ---
 
-## 7. Rotas previstas
+## 8. Rotas principais
 
 ### Auth
 
-- POST /api/auth/register
-- POST /api/auth/login
-- GET /api/auth/me
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `GET /api/auth/me`
 
 ### Companies
 
-- POST /api/companies
-- GET /api/companies
-- GET /api/companies/me
-- PUT /api/companies/me
+- `GET /api/companies`
+- `GET /api/companies/nearby`
+- `GET /api/companies/me`
+- `POST /api/companies`
+- `PUT /api/companies/me`
+- `PATCH /api/companies/me/open-status`
+- `GET /api/companies/me/order-settings`
+- `PUT /api/companies/me/order-settings`
+- `GET /api/companies/{company_id}/order-settings`
 
 ### Products
 
-- POST /api/products
-- GET /api/products
-- GET /api/products/{id}
-- PUT /api/products/{id}
-- DELETE /api/products/{id}
+- `GET /api/products`
+- `GET /api/products/{product_id}`
+- `POST /api/products`
+- `PUT /api/products/{product_id}`
+- `DELETE /api/products/{product_id}`
+- `GET /api/product-categories/me`
+- `POST /api/product-categories`
 
 ### Customer Addresses
 
-- POST /api/customer-addresses
-- GET /api/customer-addresses/me
+- `GET /api/customer-addresses/me`
+- `GET /api/customer-addresses/location-status`
+- `POST /api/customer-addresses`
+- `PUT /api/customer-addresses/{address_id}`
+- `PATCH /api/customer-addresses/{address_id}/default`
+- `DELETE /api/customer-addresses/{address_id}`
 
 ### Orders
 
-- POST /api/orders
-- GET /api/orders/my
-- GET /api/orders/company
-- GET /api/orders/{id}
-- PATCH /api/orders/{id}/accept
-- PATCH /api/orders/{id}/reject
-- PATCH /api/orders/{id}/status
+- `POST /api/orders/calculate`
+- `POST /api/orders`
+- `POST /api/orders/checkout-pro`
+- `POST /api/orders/pix`
+- `GET /api/orders/my`
+- `GET /api/orders/company`
+- `GET /api/orders/{order_id}`
+- `PATCH /api/orders/{order_id}/accept`
+- `PATCH /api/orders/{order_id}/reject`
+- `PATCH /api/orders/{order_id}/cancel`
+- `PATCH /api/orders/{order_id}/cancel-by-company`
+- `PATCH /api/orders/{order_id}/status`
+- `GET /api/orders/{order_id}/payment-status`
+
+### Payment Accounts
+
+- `GET /api/payment-accounts/mercado-pago/connect`
+- `GET /api/payment-accounts/mercado-pago/callback`
+- `GET /api/payment-accounts/me/mercado-pago`
+- `DELETE /api/payment-accounts/me/mercado-pago`
+
+### Payments
+
+- `POST /api/payments/mercado-pago/webhook`
 
 ### Deliveries
 
-- GET /api/deliveries/available
-- PATCH /api/deliveries/{id}/accept
-- PATCH /api/deliveries/{id}/status
-- PATCH /api/deliveries/{id}/location
-- GET /api/deliveries/{id}/tracking
+- `GET /api/deliveries/available`
+- `GET /api/deliveries/my`
+- `GET /api/deliveries/{delivery_id}`
+- `PATCH /api/deliveries/{delivery_id}/accept`
+- `PATCH /api/deliveries/{delivery_id}/finish`
+- `PATCH /api/deliveries/{delivery_id}/location`
+
+### Reviews
+
+- `POST /api/reviews`
+- `GET /api/reviews/company/{company_id}`
+- `GET /api/reviews/company/me`

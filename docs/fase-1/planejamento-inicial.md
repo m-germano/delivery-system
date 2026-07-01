@@ -1,45 +1,40 @@
-# Planejamento Inicial — Sistema de Delivery
+# Planejamento Inicial — DishDash
 
 ## 1. Objetivo
 
-Desenvolver um Sistema de Delivery para a disciplina de Laboratório de Engenharia de Software, utilizando uma API central em Python/FastAPI, frontend em React com Vite e banco de dados PostgreSQL.
+Desenvolver um sistema de delivery para a disciplina de Laboratório de Engenharia de Software, com backend em FastAPI, frontend em React/Vite e banco de dados PostgreSQL.
 
-O sistema tem como objetivo conectar quatro frentes principais:
+O MVP cobre o fluxo principal entre três perfis:
 
-1. Admin/Gestor do sistema.
-2. Empresa/restaurante parceiro.
-3. Cliente que realiza pedidos.
-4. Entregador responsável pela corrida.
+1. Empresa/restaurante.
+2. Cliente.
+3. Entregador.
 
-O escopo será mantido pequeno e compatível com um MVP acadêmico, mas estruturado o suficiente para demonstrar requisitos, arquitetura em camadas, modelagem de banco, autenticação por perfil, fluxo de pedido e entrega.
+A entrega final demonstra requisitos, histórias de usuário, UML, arquitetura em camadas, banco relacional, autenticação por perfil, fluxo de pedido, entrega, pagamento online, avaliação e testes.
 
 ---
 
 ## 2. Problema de negócio
 
-A operação de delivery depende da consistência das informações compartilhadas entre cliente, empresa e entregador. Durante o fluxo de um pedido, a empresa precisa receber e aceitar a solicitação, o cliente precisa acompanhar o andamento e o entregador precisa visualizar corridas disponíveis, aceitar uma entrega e atualizar sua localização/status.
+Um pedido de delivery depende de informações consistentes entre cliente, loja e entregador. A loja precisa controlar se está aberta, receber pedidos, aceitar ou recusar, preparar e liberar a entrega. O cliente precisa escolher produtos, pagar, acompanhar o pedido e avaliar a empresa. O entregador precisa ficar disponível, aceitar a entrega e finalizar com segurança.
 
-O problema central é organizar esse fluxo em uma única API, garantindo que cada ator tenha acesso apenas às funcionalidades adequadas ao seu perfil e que os estados do pedido sejam atualizados de forma controlada.
+O sistema organiza esse fluxo em uma API central, com regras de negócio no backend, persistência no PostgreSQL e interface separada por perfil no frontend.
 
 ---
 
 ## 3. Atores
 
-### Admin
-
-Usuário responsável por gestão geral do sistema, consulta de cadastros e apoio administrativo.
-
 ### Empresa
 
-Usuário responsável por cadastrar sua empresa/restaurante, manter produtos disponíveis, receber pedidos e atualizar o andamento operacional.
+Cadastra a loja, endereço, produtos, regras de atendimento, status de funcionamento, integração Mercado Pago, pedidos recebidos e avaliações.
 
 ### Cliente
 
-Usuário responsável por visualizar empresas/produtos, cadastrar endereço, criar pedidos e acompanhar o status da entrega.
+Visualiza lojas e produtos, cadastra endereço, cria pedidos, escolhe delivery ou retirada, paga online ou na entrega, acompanha o pedido e avalia a empresa.
 
 ### Entregador
 
-Usuário responsável por ficar disponível, visualizar entregas disponíveis, aceitar corridas, atualizar localização e concluir entregas.
+Marca disponibilidade, visualiza entregas disponíveis, aceita corridas, atualiza localização e finaliza entrega com código de confirmação.
 
 ---
 
@@ -47,80 +42,106 @@ Usuário responsável por ficar disponível, visualizar entregas disponíveis, a
 
 O MVP contempla:
 
-- Cadastro e login de usuários.
-- Controle de perfil por role numérica.
-- Cadastro de empresa/restaurante.
-- Cadastro de endereço da empresa.
-- Cadastro e manutenção de produtos.
-- Cadastro de endereço do cliente.
-- Criação de pedido com um ou mais produtos.
-- Cálculo simplificado da taxa de entrega por distância.
-- Aceite/recusa de pedido pela empresa.
-- Disponibilização de entrega para entregadores.
-- Aceite de entrega pelo entregador.
-- Atualização de status do pedido.
-- Atualização de status/localização da entrega.
-- Consulta do pedido pelo cliente.
-- Consulta de corridas disponíveis pelo entregador.
+- cadastro e login;
+- controle de acesso por perfil;
+- cadastro de empresa e endereço;
+- abertura e fechamento manual da loja;
+- cadastro de categorias e produtos;
+- cadastro de endereço do cliente;
+- pedido delivery e retirada;
+- cálculo de subtotal, desconto, taxa e total;
+- cálculo de distância por rota;
+- pedido mínimo por empresa;
+- aceite, recusa e cancelamento de pedido;
+- status controlado de pedido e entrega;
+- código de confirmação para entrega e retirada;
+- disponibilidade do entregador;
+- listagem e aceite de entregas;
+- rastreamento de entrega;
+- pagamento online com Mercado Pago Checkout Pro;
+- conexão da empresa com Mercado Pago por OAuth;
+- webhook de pagamento;
+- avaliação da empresa pelo cliente;
+- histórico de status;
+- testes automatizados unitários, realtime e E2E.
 
 ---
 
-## 5. Fora do escopo inicial
+## 5. Fora do escopo
 
-Não fazem parte do MVP:
+Não fazem parte desta entrega:
 
-- Pagamento online real.
-- Integração com gateway de pagamento.
-- Cupons de desconto.
-- Chat em tempo real.
-- Aplicativo mobile.
-- Avaliações de empresa/entregador.
-- Notificações push.
-- Otimização avançada de rotas.
-- Área de entrega por bairro.
-- Sistema completo de permissões por ação.
-
-Esses pontos podem ser tratados como evolução futura.
+- aplicativo mobile;
+- chat;
+- cupons;
+- notificação push;
+- painel administrativo dedicado;
+- otimização avançada de rotas;
+- área de entrega por bairro;
+- sistema completo de permissões por ação.
 
 ---
 
 ## 6. Fluxo principal do pedido
 
-1. A empresa cria uma conta com perfil Empresa.
-2. A empresa cadastra os dados do restaurante e seu endereço com latitude/longitude.
-3. A empresa cadastra produtos disponíveis.
-4. O cliente cria uma conta com perfil Cliente.
-5. O cliente cadastra ou informa um endereço de entrega.
-6. O cliente seleciona produtos e confirma o pedido.
-7. A API calcula subtotal, distância, taxa de entrega e total.
-8. O pedido é criado com status `CRIADO`.
-9. A empresa visualiza o pedido e aceita ou recusa.
-10. Ao aceitar, o pedido passa para `ACEITO` e depois `EM_PREPARO`.
-11. Quando o pedido está pronto para entrega, passa para `AGUARDANDO_ENTREGADOR`.
-12. A entrega fica disponível para entregadores ativos.
-13. Um entregador aceita a entrega.
-14. O pedido passa para `EM_ENTREGA`.
-15. O entregador atualiza localização/status.
-16. O pedido é finalizado como `ENTREGUE`.
+1. A empresa cria uma conta.
+2. A empresa cadastra loja, endereço e produtos.
+3. A empresa define se aceita delivery, retirada ou ambos.
+4. A empresa abre a loja manualmente.
+5. O cliente cria uma conta.
+6. O cliente cadastra endereço de entrega.
+7. O cliente visualiza lojas abertas, escolhe produtos e seleciona delivery ou retirada.
+8. O sistema calcula subtotal, desconto, taxa de entrega e total.
+9. O cliente escolhe pagamento presencial ou pagamento online pelo Mercado Pago Checkout Pro.
+10. Se for pagamento online, o backend cria o pedido como `AGUARDANDO_PAGAMENTO` e retorna o link do Checkout Pro.
+11. Após aprovação no Mercado Pago, o webhook libera o pedido para a empresa.
+12. Se for pagamento presencial, o pedido já entra como `ABERTO`.
+13. A empresa aceita ou recusa o pedido.
+14. Ao aceitar, o pedido passa para `ACEITO` e depois `EM_PREPARO`.
+15. Em pedido delivery, a empresa libera para `AGUARDANDO_ENTREGADOR`.
+16. Um entregador disponível aceita a entrega.
+17. O pedido passa para `EM_ENTREGA`.
+18. O cliente acompanha o pedido e visualiza o código de confirmação.
+19. O entregador finaliza a entrega com o código correto.
+20. O pedido fica `ENTREGUE`.
+21. O cliente pode avaliar a empresa.
+
+### Fluxo de retirada
+
+1. O cliente escolhe retirada na loja.
+2. O pedido não exige endereço do cliente.
+3. O pedido não gera taxa de entrega.
+4. O pedido não aparece para entregadores.
+5. A empresa prepara e marca como `PRONTO_PARA_RETIRADA`.
+6. O cliente informa o código de retirada.
+7. A empresa confirma o código.
+8. O pedido fica `RETIRADO`.
 
 ---
 
-## 7. Regras de negócio iniciais
+## 7. Regras de negócio
 
-- Um usuário possui apenas uma role principal.
-- As roles serão armazenadas na tabela `roles`.
-- A tabela `users` terá o campo `role_id` como chave estrangeira para `roles`.
-- O cliente só pode criar pedidos para empresas ativas.
+- Cada usuário possui uma role principal.
+- A empresa só recebe novos pedidos quando `is_open = true`.
+- Loja fechada pode ser visualizada, mas não aceita cálculo ou criação de pedido.
+- Um usuário com perfil Empresa possui apenas uma empresa.
 - Um pedido pertence a apenas uma empresa.
-- O carrinho fica no frontend até a confirmação do pedido.
-- O pedido só é salvo no banco quando o cliente confirma.
-- O item do pedido deve salvar nome e preço do produto no momento da compra.
-- A taxa de entrega será calculada por distância.
-- A distância poderá ser calculada de forma simplificada no MVP.
-- Uma entrega pode começar sem entregador definido.
-- O entregador só é vinculado quando aceita a corrida.
-- O histórico de status do pedido deve ser armazenado.
-- O histórico de status da entrega deve ser armazenado.
+- Todos os itens do pedido devem pertencer à empresa escolhida.
+- O item do pedido salva nome e preço do produto no momento da compra.
+- Produtos desativados não aparecem como disponíveis para o cliente.
+- Pedido delivery exige endereço do cliente.
+- Pedido de retirada não exige endereço do cliente e não gera entrega.
+- Pedido de retirada pode ter desconto configurado pela empresa.
+- A taxa de entrega usa distância por rota, com fallback aproximado.
+- O fluxo de status impede transições inválidas.
+- O histórico de status do pedido deve ser preservado.
+- O histórico de status da entrega deve ser preservado.
+- Código de entrega ou retirada deve ser validado antes da finalização.
+- O cliente só pode avaliar pedidos concluídos.
+- Um pedido só pode receber uma avaliação.
+- Pagamentos online só ficam disponíveis quando a empresa tem Mercado Pago conectado.
+- Tokens do Mercado Pago devem ser criptografados.
+- O webhook precisa consultar ou validar o pagamento antes de liberar o pedido.
 
 ---
 
@@ -129,47 +150,53 @@ Esses pontos podem ser tratados como evolução futura.
 | Responsabilidade | Tecnologia |
 |---|---|
 | Backend | Python + FastAPI |
+| Frontend | React + Vite |
 | Banco de dados | PostgreSQL |
-| Acesso a dados | Repository com SQL/driver PostgreSQL ou ORM, conforme implementação |
-| Validação de dados | Pydantic |
+| ORM | SQLAlchemy Async |
+| Validação | Pydantic |
 | Autenticação | JWT |
-| Testes | Pytest |
-| Frontend | React + JavaScript |
-| Build frontend | Vite |
-| Rotas frontend | React Router |
-| Requisições HTTP | Axios ou Fetch |
+| Hash de senha | Argon2 |
+| Tempo real | Redis Pub/Sub + WebSocket |
 | Mapas | Leaflet + OpenStreetMap |
-| Documentação | Markdown |
+| Endereço | ViaCEP + Nominatim |
+| Rotas | OSRM |
+| Pagamento online | Mercado Pago Checkout Pro |
+| Testes | Pytest |
 | UML | PlantUML |
 | Versionamento | Git + GitHub |
 
 ---
 
-## 9. Design Patterns previstos
+## 9. Design Patterns usados
 
 ### Repository Pattern
 
-Aplicado para separar acesso ao banco de dados da regra de negócio.
+Separa consultas e comandos de banco das regras de negócio.
 
 ### Strategy Pattern
 
-Aplicado no cálculo da taxa de entrega. A regra inicial pode ser simples, mas futuramente pode ser substituída por cálculo via faixas, API externa ou regra promocional.
+Isola a regra de cálculo de taxa de entrega.
 
-### State Pattern ou validação de transição de estado
+### State Pattern por validação de transições
 
-Aplicado no controle de status do pedido e da entrega, evitando mudanças inválidas como sair de `CRIADO` diretamente para `ENTREGUE`.
+Controla o avanço de status do pedido e da entrega, impedindo mudanças inválidas.
 
 ---
 
 ## 10. Critérios de sucesso do MVP
 
-- API executando localmente.
-- Banco PostgreSQL criado e populado com roles iniciais.
-- Login e autenticação por JWT funcionando.
+- Backend executando localmente.
+- Frontend executando localmente.
+- PostgreSQL e Redis funcionando.
+- Login e JWT funcionando.
 - Rotas protegidas por perfil.
-- Empresa conseguindo cadastrar produtos.
-- Cliente conseguindo criar pedido.
-- Empresa conseguindo aceitar e atualizar pedido.
-- Entregador conseguindo aceitar entrega.
-- Cliente conseguindo acompanhar status.
-- Testes automatizados cobrindo regra de taxa e transição de status.
+- Empresa cadastrando loja, endereço e produtos.
+- Empresa abrindo e fechando a loja.
+- Cliente criando pedido.
+- Mercado Pago Checkout Pro funcionando no fluxo online.
+- Empresa aceitando e atualizando pedido.
+- Entregador aceitando e finalizando entrega.
+- Cliente avaliando empresa.
+- Testes unitários, realtime e E2E executáveis.
+- README principal orientando a apresentação e execução.
+- UML de classes e casos de uso atualizado.

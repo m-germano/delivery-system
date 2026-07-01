@@ -1,5 +1,5 @@
 @startuml
-title Diagrama de Classes — Sistema de Delivery
+title Diagrama de Classes — DishDash
 
 skinparam classAttributeIconSize 0
 skinparam linetype ortho
@@ -8,15 +8,7 @@ skinparam shadowing false
 
 top to bottom direction
 
-skinparam nodesep 60
-skinparam ranksep 60
-
-' =====================================================
-' ACESSO E PERFIS
-' =====================================================
-
-package "Acesso e Perfis" as Access {
-
+package "Acesso" {
   class Role {
     +id: smallint
     +name: string
@@ -36,12 +28,7 @@ package "Acesso e Perfis" as Access {
   }
 }
 
-' =====================================================
-' EMPRESA, CATÁLOGO E FRETE
-' =====================================================
-
-package "Empresa, Catálogo e Frete" as CompanyCatalog {
-
+package "Empresa e Catálogo" {
   class Company {
     +id: bigint
     +owner_user_id: bigint
@@ -51,6 +38,7 @@ package "Empresa, Catálogo e Frete" as CompanyCatalog {
     +document: string
     +image_url: string
     +is_active: boolean
+    +is_open: boolean
     +created_at: datetime
     +updated_at: datetime
   }
@@ -60,12 +48,22 @@ package "Empresa, Catálogo e Frete" as CompanyCatalog {
     +company_id: bigint
     +street: string
     +number: string
+    +complement: string
     +neighborhood: string
     +city: string
     +state: string
     +zip_code: string
     +latitude: decimal
     +longitude: decimal
+  }
+
+  class CompanyOrderSettings {
+    +id: bigint
+    +company_id: bigint
+    +accepts_delivery: boolean
+    +accepts_pickup: boolean
+    +pickup_discount_percent: decimal
+    +minimum_order_value: decimal
   }
 
   class ProductCategory {
@@ -98,18 +96,14 @@ package "Empresa, Catálogo e Frete" as CompanyCatalog {
   }
 }
 
-' =====================================================
-' CLIENTE
-' =====================================================
-
-package "Cliente" as Customer {
-
+package "Cliente" {
   class CustomerAddress {
     +id: bigint
     +user_id: bigint
     +label: string
     +street: string
     +number: string
+    +complement: string
     +neighborhood: string
     +city: string
     +state: string
@@ -118,26 +112,36 @@ package "Cliente" as Customer {
     +longitude: decimal
     +is_default: boolean
   }
+
+  class CompanyReview {
+    +id: bigint
+    +company_id: bigint
+    +customer_user_id: bigint
+    +order_id: bigint
+    +rating: int
+    +comment: text
+    +created_at: datetime
+  }
 }
 
-' =====================================================
-' PEDIDOS
-' =====================================================
-
-package "Pedidos" as Orders {
-
+package "Pedidos" {
   class Order {
     +id: bigint
     +customer_user_id: bigint
     +company_id: bigint
     +customer_address_id: bigint
+    +fulfillment_type: string
     +status: string
     +subtotal: decimal
+    +discount_amount: decimal
+    +pickup_discount_percent: decimal
     +delivery_fee: decimal
     +total: decimal
     +distance_km: decimal
     +payment_method: string
     +notes: text
+    +created_at: datetime
+    +updated_at: datetime
   }
 
   class OrderItem {
@@ -161,12 +165,7 @@ package "Pedidos" as Orders {
   }
 }
 
-' =====================================================
-' ENTREGA
-' =====================================================
-
-package "Entrega" as DeliveryPackage {
-
+package "Entrega" {
   class Courier {
     +id: bigint
     +user_id: bigint
@@ -203,67 +202,78 @@ package "Entrega" as DeliveryPackage {
   }
 }
 
-' =====================================================
-' STRATEGY DE FRETE
-' =====================================================
-
-package "Regra de Cálculo de Frete" as FeeStrategy {
-
-  interface DeliveryFeeStrategy {
-    +calculate(distance_km): decimal
+package "Pagamento" {
+  class CompanyPaymentAccount {
+    +id: bigint
+    +company_id: bigint
+    +provider: string
+    +provider_user_id: string
+    +public_key: text
+    +access_token_encrypted: text
+    +refresh_token_encrypted: text
+    +token_expires_at: datetime
+    +is_active: boolean
   }
 
-  class DistanceRangeFeeStrategy {
-    +calculate(distance_km): decimal
+  class PaymentOAuthState {
+    +id: bigint
+    +company_id: bigint
+    +user_id: bigint
+    +provider: string
+    +state: string
+    +code_verifier_encrypted: text
+    +expires_at: datetime
+    +consumed_at: datetime
+  }
+
+  class Payment {
+    +id: bigint
+    +order_id: bigint
+    +company_id: bigint
+    +provider: string
+    +provider_payment_id: string
+    +provider_order_id: string
+    +idempotency_key: string
+    +payment_method: string
+    +status: string
+    +amount: decimal
+    +currency: string
+    +checkout_preference_id: string
+    +checkout_url: text
+    +raw_response: json
   }
 }
 
-' =====================================================
-' RELACIONAMENTOS — ACESSO
-' =====================================================
+Role "1" <-- "0..*" User
+User "1" -- "0..1" Company : owner
+Company "1" -- "1" CompanyAddress
+Company "1" -- "1" CompanyOrderSettings
+Company "1" -- "0..*" ProductCategory
+Company "1" -- "0..*" Product
+Company "1" -- "0..*" DeliveryFeeRule
+ProductCategory "1" -- "0..*" Product
 
-Role "1" -down-> "0..*" User : possui
+User "1" -- "0..*" CustomerAddress
+User "1" -- "0..1" Courier
 
-User "1" -right-> "0..1" Company : dono
-User "1" -right-> "0..1" Courier : perfil entregador
-User "1" -down-> "0..*" CustomerAddress : endereços
+Company "1" -- "0..*" Order
+User "1" -- "0..*" Order : customer
+CustomerAddress "0..1" -- "0..*" Order
+Order "1" -- "1..*" OrderItem
+Product "1" -- "0..*" OrderItem
+Order "1" -- "0..*" OrderStatusHistory
 
-' =====================================================
-' RELACIONAMENTOS — EMPRESA E CATÁLOGO
-' =====================================================
+Order "1" -- "0..1" Delivery
+User "0..1" -- "0..*" Delivery : courier_user
+Delivery "1" -- "0..*" DeliveryStatusHistory
 
-Company "1" -down-> "1" CompanyAddress : endereço
-Company "1" -down-> "0..*" ProductCategory : categorias
-Company "1" -down-> "0..*" Product : produtos
-Company "1" -down-> "0..*" DeliveryFeeRule : regras de frete
+Company "1" -- "0..*" CompanyPaymentAccount
+Company "1" -- "0..*" PaymentOAuthState
+Order "1" -- "0..*" Payment
+Company "1" -- "0..*" Payment
 
-ProductCategory "1" -down-> "0..*" Product : classifica
-
-' =====================================================
-' RELACIONAMENTOS — PEDIDOS
-' =====================================================
-
-User "1" -down-> "0..*" Order : realiza
-Company "1" -right-> "0..*" Order : recebe
-CustomerAddress "1" -right-> "0..*" Order : usado em
-
-Order "1" -down-> "1..*" OrderItem : itens
-Product "1" -right-> "0..*" OrderItem : vendido em
-Order "1" -down-> "0..*" OrderStatusHistory : histórico
-
-' =====================================================
-' RELACIONAMENTOS — ENTREGA
-' =====================================================
-
-Order "1" -right-> "0..1" Delivery : gera
-User "1" -right-> "0..*" Delivery : entregador
-Delivery "1" -down-> "0..*" DeliveryStatusHistory : histórico
-
-' =====================================================
-' RELACIONAMENTO — STRATEGY
-' =====================================================
-
-DeliveryFeeStrategy <|.. DistanceRangeFeeStrategy
-DistanceRangeFeeStrategy ..> DeliveryFeeRule : consulta regras
+Company "1" -- "0..*" CompanyReview
+User "1" -- "0..*" CompanyReview : customer
+Order "1" -- "0..1" CompanyReview
 
 @enduml

@@ -6,6 +6,7 @@ left to right direction
 skinparam shadowing false
 skinparam packageStyle rectangle
 skinparam actorStyle awesome
+skinparam ArrowColor #555555
 
 skinparam usecase {
   BackgroundColor white
@@ -16,46 +17,86 @@ skinparam actor {
   BorderColor #444444
 }
 
-skinparam ArrowColor #555555
-
 actor "Cliente" as Cliente
 actor "Empresa" as Empresa
+actor "Mercado Pago" as MercadoPago
 
-rectangle "Sistema de Delivery" {
+rectangle "DishDash" {
 
-  package "Área do Cliente" as ClienteArea {
-    usecase "Visualizar empresas" as UC06
-    usecase "Visualizar produtos" as UC07
-    usecase "Cadastrar endereço\nde entrega" as UC08
-    usecase "Criar pedido" as UC09
-    usecase "Calcular taxa\nde entrega" as UC10
-    usecase "Acompanhar pedido" as UC11
+  rectangle "Área do Cliente" as AreaCliente {
+    usecase "Visualizar lojas" as C01
+    usecase "Visualizar produtos" as C02
+    usecase "Cadastrar endereço" as C03
+    usecase "Montar carrinho" as C04
+    usecase "Calcular pedido" as C05
+    usecase "Escolher delivery\nou retirada" as C06
+    usecase "Criar pedido" as C07
+    usecase "Pagar com\nCheckout Pro" as C08
+    usecase "Acompanhar pedido" as C09
+    usecase "Consultar código\nde confirmação" as C10
+    usecase "Avaliar empresa" as C11
   }
 
-  package "Área da Empresa" as EmpresaArea {
-    usecase "Gerenciar empresa" as UC03
-    usecase "Cadastrar endereço\nda empresa" as UC04
-    usecase "Gerenciar produtos" as UC05
-    usecase "Visualizar pedidos\nrecebidos" as UC12
-    usecase "Aceitar ou recusar\npedido" as UC13
-    usecase "Atualizar status\ndo pedido" as UC14
+  rectangle "Pagamento" as AreaPagamento {
+    usecase "Criar preferência\nde pagamento" as P01
+    usecase "Receber webhook\nde pagamento" as P02
+    usecase "Liberar pedido pago" as P03
+  }
+
+  rectangle "Área da Empresa" as AreaEmpresa {
+    usecase "Cadastrar empresa" as E01
+    usecase "Cadastrar endereço\nda empresa" as E02
+    usecase "Gerenciar produtos" as E03
+    usecase "Configurar delivery\ne retirada" as E04
+    usecase "Abrir ou fechar loja" as E05
+    usecase "Conectar Mercado Pago" as E06
+    usecase "Visualizar pedidos" as E07
+    usecase "Aceitar ou recusar\npedido" as E08
+    usecase "Atualizar status\ndo pedido" as E09
+    usecase "Confirmar retirada\ncom código" as E10
+    usecase "Visualizar avaliações" as E11
   }
 }
 
-Cliente --> UC06
-Cliente --> UC07
-Cliente --> UC08
-Cliente --> UC09
-Cliente --> UC11
+' Associações do Cliente
+Cliente --> C01
+Cliente --> C02
+Cliente --> C03
+Cliente --> C04
+Cliente --> C05
+Cliente --> C06
+Cliente --> C07
+Cliente --> C08
+Cliente --> C09
+Cliente --> C10
+Cliente --> C11
 
-Empresa --> UC03
-Empresa --> UC04
-Empresa --> UC05
-Empresa --> UC12
-Empresa --> UC13
-Empresa --> UC14
+' Associações da Empresa
+Empresa --> E01
+Empresa --> E02
+Empresa --> E03
+Empresa --> E04
+Empresa --> E05
+Empresa --> E06
+Empresa --> E07
+Empresa --> E08
+Empresa --> E09
+Empresa --> E10
+Empresa --> E11
 
-UC09 ..> UC10 : <<include>>
-UC13 ..> UC14 : <<include>>
+' Integração externa
+MercadoPago --> P02
+
+' Relacionamentos include/extend
+C07 ..> C05 : <<include>>
+C08 ..> P01 : <<include>>
+P02 ..> P03 : <<include>>
+E08 ..> E09 : <<include>>
+E10 ..> E09 : <<include>>
+C11 ..> C09 : <<extend>>
+
+' Ligações ocultas para ajudar no layout
+C11 -[hidden]-> P01
+P03 -[hidden]-> E01
 
 @enduml

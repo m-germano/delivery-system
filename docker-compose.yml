@@ -4,30 +4,28 @@ services:
     container_name: delivery_postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: delivery_db
-      POSTGRES_USER: delivery_user
-      POSTGRES_PASSWORD: delivery_pass
+      POSTGRES_DB: ${POSTGRES_DB:-delivery_db}
+      POSTGRES_USER: ${POSTGRES_USER:-delivery_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-delivery_pass}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - delivery_pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U delivery_user -d delivery_db"]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-delivery_user} -d ${POSTGRES_DB:-delivery_db}" ]
       interval: 5s
       timeout: 5s
       retries: 10
 
   redis:
     image: redis:7.2-alpine
-    container_name: delivery_redis
+    container_name: delivery_redis_compose
     restart: unless-stopped
-    command: ["redis-server", "--appendonly", "yes"]
-    ports:
-      - "6379:6379"
+    command: [ "redis-server", "--appendonly", "yes" ]
     volumes:
       - delivery_redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -38,30 +36,14 @@ services:
       dockerfile: Dockerfile
     container_name: delivery_backend
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
-      APP_NAME: Delivery System API
-      APP_ENV: development
-      APP_VERSION: 0.1.0
-      API_PREFIX: /api
-      DATABASE_URL: postgresql+asyncpg://delivery_user:delivery_pass@postgres:5432/delivery_db
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-delivery_user}:${POSTGRES_PASSWORD:-delivery_pass}@postgres:5432/${POSTGRES_DB:-delivery_db}
       REDIS_URL: redis://redis:6379/0
-      DATABASE_ECHO: "false"
-      AUTO_CREATE_TABLES: "true"
-      VERIFY_TABLES_ON_STARTUP: "true"
-      CORS_ORIGINS: '["http://localhost:5173","http://localhost:4173","http://localhost:3000"]'
-      SECRET_KEY: change-me-in-development
-      ACCESS_TOKEN_EXPIRE_MINUTES: "1440"
-      JWT_ALGORITHM: HS256
-      VIACEP_BASE_URL: https://viacep.com.br/ws
-      NOMINATIM_BASE_URL: https://nominatim.openstreetmap.org
-      NOMINATIM_EMAIL: ""
-      GEOCODING_USER_AGENT: DeliverySystemAPI/0.1.0
-      OSRM_BASE_URL: https://router.project-osrm.org
-      ROUTE_DISTANCE_OSRM_ENABLED: "true"
-      ROUTE_DISTANCE_TIMEOUT_SECONDS: "6"
-      EXTERNAL_API_TIMEOUT_SECONDS: "8"
+      CORS_ORIGINS: ${CORS_ORIGINS:-["http://localhost:5173","http://127.0.0.1:5173","http://localhost:4173","http://localhost:3000"]}
     ports:
-      - "8000:8000"
+      - "${BACKEND_PORT:-8000}:8000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -73,13 +55,14 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        VITE_APP_NAME: DishDash
-        VITE_API_URL: http://localhost:8000/api
-        VITE_WS_URL: ws://localhost:8000
+        VITE_APP_NAME: ${VITE_APP_NAME:-DishDash}
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:8000/api}
+        VITE_WS_URL: ${VITE_WS_URL:-ws://localhost:8000}
+        VITE_OSRM_BASE_URL: ${VITE_OSRM_BASE_URL:-https://router.project-osrm.org}
     container_name: delivery_frontend
     restart: unless-stopped
     ports:
-      - "5173:80"
+      - "${FRONTEND_PORT:-5173}:80"
     depends_on:
       - backend
 
